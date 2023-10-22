@@ -134,7 +134,7 @@ export class UncrossArbBot implements Bot {
 				console.log(
 					`[${new Date().toISOString()}] Running uncross periodic tasks...`
 				);
-				const marketIndexes = PerpMarkets[this.driftEnv];
+				const marketIndexes = this.driftClient.getPerpMarketAccounts();
 				for (let i = 0; i < marketIndexes.length; i++) {
 					const perpIdx = marketIndexes[i].marketIndex;
 					const driftUser = this.driftClient.getUser();
@@ -207,10 +207,23 @@ export class UncrossArbBot implements Bot {
 						(bestBidPrice - bestAskPrice) / midPrice >
 						2 * driftUser.getMarketFees(MarketType.PERP, perpIdx).takerFee
 					) {
-						await this.jitProxyClient.arbPerp({
-							marketIndex: perpIdx,
-							makerInfos: [bidMakerInfo, askMakerInfo],
-						});
+						try {
+							const txResult = await this.jitProxyClient.arbPerp({
+								marketIndex: perpIdx,
+								makerInfos: [bidMakerInfo, askMakerInfo],
+							});
+							logger.info(
+								`Potential arb with sig: ${txResult.txSig}. Check the blockchain for confirmation.`
+							);
+						} catch (e) {
+							if (e instanceof Error) {
+								logger.error(
+									`Error sending arb tx on market index ${perpIdx} with detected market ${bestBidPrice}@${bestAskPrice}: ${
+										e.stack ? e.stack : e.message
+									}`
+								);
+							}
+						}
 					}
 				}
 
