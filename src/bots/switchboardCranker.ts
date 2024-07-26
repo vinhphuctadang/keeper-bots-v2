@@ -5,6 +5,7 @@ import {
 	BlockhashSubscriber,
 	DriftClient,
 	PriorityFeeSubscriber,
+	SlotSubscriber,
 	TxSigAndSlot,
 } from '@drift-labs/sdk';
 import { SwitchboardOnDemandClient } from '@drift-labs/sdk/lib/oracles/switchboardOnDemandClient';
@@ -38,6 +39,7 @@ export class SwitchboardCrankerBot implements Bot {
 		private globalConfig: GlobalConfig,
 		private crankConfigs: SwitchboardCrankerBotConfig,
 		private driftClient: DriftClient,
+		private slotSubscriber: SlotSubscriber,
 		private priorityFeeSubscriber?: PriorityFeeSubscriber,
 		private bundleSender?: BundleSender,
 		private lookupTableAccounts: AddressLookupTableAccount[] = []
@@ -93,9 +95,44 @@ export class SwitchboardCrankerBot implements Bot {
 	}
 
 	async runCrankLoop() {
-		for (const alias in this.crankConfigs.pullFeedConfigs) {
+		const aliases = Object.keys(this.crankConfigs.pullFeedConfigs);
+		const onChainDataResults =
+			await this.driftClient.connection.getMultipleAccountsInfo(
+				aliases.map(
+					(f) => new PublicKey(this.crankConfigs.pullFeedConfigs[f].pubkey)
+				)
+			);
+
+		const decoded = onChainDataResults
+			.filter((buffer) => buffer?.data)
+			.map((buffer) => {
+				if (buffer?.data) {
+					return this.oracleClient.getOraclePriceDataFromBuffer(buffer?.data);
+				}
+			});
+
+		for (let i = 0; i < aliases.length; i++) {
+			const alias = aliases[i];
+			const decodedData = decoded[i];
+			const slotThresold =
+				this.crankConfigs.pullFeedConfigs[alias].slotThreshold || 50;
+			if (!decodedData) {
+				logger.error(`No decoded data for ${alias}`);
+				continue;
+			}
+
+			const slotDiff =
+				this.slotSubscriber.currentSlot - decodedData.slot.toNumber();
+			console.log(decodedData.slot.toNumber());
+			console.log(slotDiff);
+			if (slotDiff < slotThresold) {
+				logger.info(
+					`Skipping ${alias} as slot is less than threshold: ${slotDiff}`
+				);
+				continue;
+			}
+
 			try {
-				console.log(this.crankConfigs.pullFeedConfigs[alias].pubkey);
 				const pubkey = new PublicKey(
 					this.crankConfigs.pullFeedConfigs[alias].pubkey
 				);

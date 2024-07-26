@@ -570,6 +570,7 @@ const runBot = async () => {
 				config.global,
 				config.botConfigs!.switchboardCranker!,
 				driftClient,
+				slotSubscriber,
 				priorityFeeSubscriber,
 				bundleSender,
 				[]

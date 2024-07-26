@@ -114,6 +114,7 @@ export type SwitchboardCrankerBotConfig = BaseBotConfig & {
 	pullFeedConfigs: {
 		[key: string]: {
 			pubkey: string;
+			slotThreshold?: number;
 		};
 	};
 };
