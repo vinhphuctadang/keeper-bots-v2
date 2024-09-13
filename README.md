@@ -10,8 +10,11 @@
   </p>
 </div>
 
-# Setting up
+# This is NOT official keeper bot from DRIFT
 
+Use at your own risk
+
+# Setting up
 
 This repo has two main branches:
 
