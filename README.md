@@ -10,7 +10,9 @@
   </p>
 </div>
 
-# This is not official keeper bot from DRIFT, use at your own risk
+# This is NOT official keeper bot from DRIFT
+
+Use at your own risk
 
 # Setting up
 
